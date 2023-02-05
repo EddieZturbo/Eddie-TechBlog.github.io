@@ -10,6 +10,18 @@ venue: 'February 5'
 
 ## 理论基础
 
+### 上下文切换：
+
+> 上下文切换：
+>
+> 多线程编程中一般线程的个数都大于 CPU 核心的个数，而一个 CPU 核心在任意时刻只能被一个线程使用，为了让这些线程都能得到有效执行，CPU 采取的策略是为每个线程**分配时间片**并**轮转**的形式。当一个线程的时间片用完的时候就会重新处于就绪状态让给其他线程使用，这个过程就属于一次上下文切换。概括来说就是：当前任务在执行完 CPU 时间片切换到另一个任务之前会先保存自己的状态，以便下次再切换回这个任务时，可以再加载这个任务的状态。
+>
+> **任务从保存到再加载的过程就是一次上下文切换**。
+>
+> 上下文切换通常是计算密集型的。也就是说，它需要相当可观的处理器时间，在每秒几十上百次的切换中，每次切换都需要纳秒量级的时间。所以，上下文切换对系统来说意味着消耗大量的 CPU 时间，事实上，可能是操作系统中时间消耗最大的操作。
+>
+> Linux 相比与其他操作系统（包括其他类 Unix 系统）有很多的优点，其中有一项就是，其上下文切换和模式切换的时间消耗非常少。
+
 ## 线程基础
 
 ## JUC(Java Util Concurrency)
@@ -336,6 +348,143 @@ public void shutdown() {...}//线程池不再接受新任务了，但是队列�
     }
 ```
 
+- 如果当前运行的线程数小于 corePoolSize， 如果再来新任务的话，就创建新的线程来执行任务；
+
+- 当前运行的线程数等于 corePoolSize 后， 如果再来新任务的话，会将任务加入 `LinkedBlockingQueue`；
+
+- 线程池中的线程执行完 手头的任务后，会在循环中反复从 `LinkedBlockingQueue` 中获取任务来执行；
+
+
+
+![image-20230205144649029](/images/image-20230205144649029.png)
+
+
+
+**为什么不推荐使用`FixedThreadPool`？**
+
+
+
+**`FixedThreadPool` 使用无界队列 `LinkedBlockingQueue`（队列的容量为 Integer.MAX_VALUE）作为线程池的工作队列会对线程池带来如下影响 ：**
+
+1. 当线程池中的线程数达到 `corePoolSize` 后，新任务将在无界队列中等待，因此线程池中的线程数不会超过 corePoolSize；
+2. 由于使用无界队列时 `maximumPoolSize` 将是一个无效参数，因为不可能存在任务队列满的情况。所以，通过创建 `FixedThreadPool`的源码可以看出创建的 `FixedThreadPool` 的 `corePoolSize` 和 `maximumPoolSize` 被设置为同一个值。
+3. 由于 1 和 2，使用无界队列时 `keepAliveTime` 将是一个无效参数；
+4. 运行中的 `FixedThreadPool`（未执行 `shutdown()`或 `shutdownNow()`）不会拒绝任务，在任务比较多的时候**会导致 OOM（内存溢出）**。
+
+##### SingleThreadExecutor 
+
+`SingleThreadExecutor` 是**只有一个线程的线程池**
+
+源代码可以看出新创建的 `SingleThreadExecutor` 的 `corePoolSize` 和 `maximumPoolSize` **都被设置为 1**.其他参数和 `FixedThreadPool` 相同
+
+```java
+	/**
+     *返回只有一个线程的线程池
+     */
+    public static ExecutorService newSingleThreadExecutor(ThreadFactory threadFactory) {
+        return new FinalizableDelegatedExecutorService
+            (new ThreadPoolExecutor(1, 1,
+                                    0L, TimeUnit.MILLISECONDS,
+                                    new LinkedBlockingQueue<Runnable>(),
+                                    threadFactory));
+    }
+```
+
+- 如果当前运行的线程数少于 `corePoolSize`，则创建一个新的线程执行任务；
+
+- 当前线程池中有一个运行的线程后，将任务加入 `LinkedBlockingQueue`
+
+- 线程执行完当前的任务后，会在循环中反复从`LinkedBlockingQueue` 中获取任务来执行
+
+
+
+![image-20230205144906373](/images/image-20230205144906373.png)
+
+**为什么不推荐使用`SingleThreadExecutor`？**
+
+
+
+`SingleThreadExecutor` **使用无界队列** `LinkedBlockingQueue` 作为线程池的工作队列（队列的容量为 Intger.MAX_VALUE）。`SingleThreadExecutor` 使用无界队列作为线程池的工作队列会对线程池带来的影响与 `FixedThreadPool` 相同。说简单点就是**可能会导致 OOM**，
+
+
+
+##### CachedThreadPool
+
+ `CachedThreadPool` 是一个会根**据需要创建新线程**的线程池
+
+
+
+`CachedThreadPool` 的`corePoolSize` 被设置为空（0），`maximumPoolSize`被设置为 `Integer.MAX.VALUE`，即**最大线程数是无界**的，这也就意味着如果主线程提交任务的速度高于 `maximumPool` 中线程处理任务的速度时，`CachedThreadPool` 会不断创建新的线程。极端情况下，这样会导致耗尽 cpu 和内存资源
+
+
+
+```java
+	/**
+     * 创建一个线程池，根据需要创建新线程，但会在先前构建的线程可用时重用它。
+     */
+    public static ExecutorService newCachedThreadPool(ThreadFactory threadFactory) {
+        return new ThreadPoolExecutor(0, Integer.MAX_VALUE,
+                                      60L, TimeUnit.SECONDS,
+                                      new SynchronousQueue<Runnable>(),
+                                      threadFactory);
+    }
+```
+
+1. 首先执行 `SynchronousQueue.offer(Runnable task)` 提交任务到任务队列。如果当前 `maximumPool` 中有闲线程正在执行 `SynchronousQueue.poll(keepAliveTime,TimeUnit.NANOSECONDS)`，那么主线程执行 offer 操作与空闲线程执行的 `poll` 操作配对成功，主线程把任务交给空闲线程执行，`execute()`方法执行完成，否则执行下面的步骤 2；
+2. 当初始 `maximumPool` 为空，或者 `maximumPool` 中没有空闲线程时，将没有线程执行 `SynchronousQueue.poll(keepAliveTime,TimeUnit.NANOSECONDS)`。这种情况下，步骤 1 将失败，此时 `CachedThreadPool` 会创建新线程执行任务，execute 方法执行完成；
+
+![image-20230205145227932](/images/image-20230205145227932.png)
+
+ **为什么不推荐使用`CachedThreadPool`？**
+
+
+
+`CachedThreadPool`允许创建的线程数量为 `Integer.MAX_VALUE` ，**可能会创建大量线程**，从而**导致 OOM**
+
+
+
+##### ScheduledThreadPoolExecutor
+
+**`ScheduledThreadPoolExecutor` 主要用来在给定的延迟后运行任务，或者定期执行任务。** 这个在实际项目中基本不会被用到，**也不推荐使用**，大家只需要简单了解一下它的思想即可
+
+
+
+#### 合理地配置线程池
+
+要想合理地配置线程池，就必须首先分析任务特性，可以从以下几个角度来分析。
+
+- 任务的性质：**CPU密集型任务**、**IO密集型任务**和混合型任务。
+- 任务的优先级：高、中和低。
+- 任务的执行时间：长、中和短。
+- 任务的依赖性：是否依赖其他系统资源，如数据库连接。
+
+
+
+有一个简单并且适用面比较广的**经验之谈**：
+
+- **CPU 密集型任务(N+1)：** 这种任务消耗的主要是 CPU 资源，可以将线程数设置为 N（CPU 核心数）+1，比 CPU 核心数多出来的一个线程是为了防止线程偶发的缺页中断，或者其它原因导致的任务暂停而带来的影响。一旦任务暂停，CPU 就会处于空闲状态，而在这种情况下多出来的一个线程就可以充分利用 CPU 的空闲时间。
+- **I/O 密集型任务(2N)：** 这种任务应用起来，系统会用大部分的时间来处理 I/O 交互，而线程在处理 I/O 的时间段内不会占用 CPU 来处理，这时就可以将 CPU 交出给其它线程使用。因此在 I/O 密集型任务的应用中，我们可以多配置一些线程，具体的计算方法是 2N。
+
+**如何判断是 CPU 密集任务还是 IO 密集任务？**
+
+CPU 密集型简单理解就是利用 CPU 计算能力的任务比如你在内存中对大量数据进行排序。但凡涉及到网络读取，文件读取这类都是 IO 密集型，这类任务的特点是 CPU 计算耗费时间相比于等待 IO 操作完成的时间来说很少，大部分时间都花在了等待 IO 操作完成上。
+
+#### 线程池的监控
+
+监控线程池的时候可以使用以下属性。
+
+
+
+- `taskCount`：线程池需要执行的任务数量。
+- `completedTaskCount`：线程池在运行过程中已完成的任务数量，小于或等于taskCount。
+- `largestPoolSize`：线程池里曾经创建过的最大线程数量。通过这个数据可以知道线程池是否曾经满过。如该数值等于线程池的最大大小，则表示线程池曾经满过。
+- `getPoolSize`：线程池的线程数量。如果线程池不销毁的话，线程池里的线程不会自动销毁，所以这个大小只增不减。
+- `getActiveCount`：获取活动的线程数。
+
+
+
+通过扩展线程池进行监控。可以通过**继承线程池来自定义线程池**，**重写线程池**的`beforeExecute`、`afterExecute`和`terminated`方法，也可以在任务执行前、执行后和线程池关闭前执行一些代码来进行监控。例如，监控任务的平均执行时间、最大执行时间和最小执行时间等。这几个方法在线程池里是空方法。
+
 
 
 ### CompletableFuture异步编程
@@ -346,7 +495,7 @@ public void shutdown() {...}//线程池不再接受新任务了，但是队列�
 public class CompletableFuture<T> implements Future<T>, CompletionStage<T> {...}
 ```
 
-#### **Future接口**
+**Future接口**
 
 ![image-20230204223419774](/images/image-20230204223419774.png)
 
@@ -356,11 +505,11 @@ public class CompletableFuture<T> implements Future<T>, CompletionStage<T> {...}
 
 - boolean `isDone()` ： 判断任务是否已经被执行完成。
 
-- `get()` ：等待任务执行完成并获取运算结果。
+- `get()` ：等待任务执行完成并获取运算结果。会阻塞主线程
 
 - `get(long timeout, TimeUnit unit)` ：多了一个超时时间。
 
-#### CompletionStage接口
+**CompletionStage接口**
 
 ![image-20230204223644600](/images/image-20230204223644600.png)
 
@@ -372,15 +521,268 @@ public class CompletableFuture<T> implements Future<T>, CompletionStage<T> {...}
 
 #### 创建 CompletableFuture
 
-**一，通过 new 关键字。**
+##### **一，通过 new 关键字。**
 
 通过 new 关键字创建 `CompletableFuture` 对象这种使用方式可以看作是将 `CompletableFuture` 当做 `Future` 来使用。
 
 
 
+```java
+CompletableFuture completableFuture = new CompletableFuture();
+```
+
+##### **二，** 静态工厂方法
+
+**基于 `CompletableFuture` 自带的静态工厂方法：`runAsync()` 、`supplyAsync()` 。**
+
+###### `runAsync()` 无返回结果
+
+```java
+public static CompletableFuture<Void> runAsync(Runnable runnable,
+                                                   Executor executor) {
+    return asyncRunStage(screenExecutor(executor), runnable);
+}
+```
+
+```java
+public static ExecutorService threadPool = Executors.newFixedThreadPool(20);//指定线程池
+    public static void main(String[] args) throws ExecutionException, InterruptedException {
+        CompletableFuture.runAsync(()->{
+            System.out.println("这里是通过CompletableFuture的静态方法runAsync启动的线程:" + Thread.currentThread().getName());
+        },threadPool);
+        
+        threadPool.shutdown();
+        while (!threadPool.isTerminated()){}//循环等待指导线程池关闭完成
+        System.out.println("Finished all threads");
+    }
+```
+
+###### `supplyAsync()` 有返回结果
+
+```java
+public static <U> CompletableFuture<U> supplyAsync(Supplier<U> supplier,
+                                                       Executor executor) {
+     return asyncSupplyStage(screenExecutor(executor), supplier);
+}
+
+public interface Supplier<T> {//有返回值的
+
+    /**
+     * Gets a result.
+     *
+     * @return a result
+     */
+    T get();
+}
+```
+
+```java
+public static ExecutorService threadPool = Executors.newFixedThreadPool(20);//指定线程池
+    public static void main(String[] args) throws ExecutionException, InterruptedException {
+        CompletableFuture<String> supplyAsync = CompletableFuture.supplyAsync(() -> {
+            return "Hello World";//有返回值
+        }, threadPool);
+
+        String result = supplyAsync.get();//获取线程执行后的返回值
+
+        CompletableFuture.runAsync(()->{
+            System.out.println(result);
+        },threadPool);
+
+        threadPool.shutdown();
+        while (!threadPool.isTerminated()){}//循环等待指导线程池关闭完成
+        System.out.println("Finished all threads");
+    }
+```
+
+#### 处理异步结算的结果
+
+- `thenApply()`进一步处理异步完成后的结果并返回处理结果
+- `thenAccept()`进一步处理异步完成后的结果 无返回结果
+- `thenRun()`进一步操作 无法获取异步完成后的结果 无返回结果
+- `whenComplete()`进一步处理异步完成后的结果
+  无法处理结果数据能够感知异常（`exceptionally()`可以感知到异常并对异常进行处理【当出现异常设置默认返回值】）并返回处理结果
+
+```java
+- `thenApply()`进一步处理异步完成后的结果并返回处理结果
+- `thenAccept()`进一步处理异步完成后的结果 无返回结果
+- `thenRun()`进一步操作 无法获取异步完成后的结果 无返回结果
+    
+public static ExecutorService threadPool = Executors.newFixedThreadPool(20);//指定线程池
+    public static void main(String[] args) throws ExecutionException, InterruptedException {
+        CompletableFuture<String> supplyAsync = CompletableFuture.supplyAsync(() -> {
+            return "Hello ";
+        }, threadPool);
+        supplyAsync.thenApply((result)->{return result + "World";})//进一步处理异步完成后的结果并返回处理结果
+                .thenApply((result)->{return result + "--Eddie";})//进一步处理异步完成后的结果并返回处理结果
+                
+                .thenAccept(System.out::println)//进一步处理异步完成后的结果 无返回结果
+                
+                .thenRun(()->{//进一步操作 无法获取异步完成后的结果 无返回结果
+                    System.out.println("我感知不到异步任务执行的任何结果");
+                });
+
+        threadPool.shutdown();
+        while (!threadPool.isTerminated()){}//循环等待指导线程池关闭完成
+        System.out.println("Finished all threads");
+    }
+```
+
+```java
+- `whenComplete()`进一步处理异步完成后的结果
+无法处理结果数据能够感知异常（`exceptionally()`可以感知到异常并对异常进行处理【当出现异常设置默认返回值】）并返回处理结果
+    
+public static ExecutorService threadPool = Executors.newFixedThreadPool(20);//指定线程池
+    public static void main(String[] args) throws ExecutionException, InterruptedException {
+        CompletableFuture<String> supplyAsync = CompletableFuture.supplyAsync(() -> {
+            int num = 10 / 0;//模拟出现异常
+            return "Hello ";
+        }, threadPool);
+        supplyAsync.whenComplete((result,exception)->{//当异步任务完成后
+            System.out.println("上一步异步执行的结果是:" + result + "\t" + "上异步出现的异常是" + exception);
+            //上一步异步执行的结果是:null	上异步出现的异常是java.util.concurrent.CompletionException: java.lang.ArithmeticException: / by zero
+        }).exceptionally(throwable -> {//若异步任务完成时出现了异常
+            System.out.println("出现的异常是" + throwable);
+            //出现的异常是java.util.concurrent.CompletionException: java.lang.ArithmeticException: / by zero
+            return "如果出现异常的话 这里返回一个默认值";
+        }).thenAccept((result)->{
+            System.out.println(result);//如果出现异常的话 这里返回一个默认值
+        });
+
+        threadPool.shutdown();
+        while (!threadPool.isTerminated()){}//循环等待指导线程池关闭完成
+        System.out.println("Finished all threads");
+    }
+```
+
+#### 异步线程串行化
+
+- `thenRunAsync`启动一个新的异步线程 串行上一个异步线程 无感知上个线程的结果 无返回结果
+- `thenAcceptAsync`启动一个新的异步线程 串行并处理上个异步线程完成后的结果 无返回结果
+- `thenApplyAsync`启动一个新的异步线程 串行并处理上个异步线程完成后的结果并返回处理结果
+
+```java
+一：`thenApplyAsync()`启动一个新的异步线程 串行并处理上个异步线程完成后的结果并返回处理结果
+public <U> CompletionStage<U> thenApplyAsync
+        (Function<? super T,? extends U> fn,
+         Executor executor);
+         
+二：`thenAcceptAsync()`启动一个新的异步线程 串行并处理上个异步线程完成后的结果 无返回结果
+public CompletionStage<Void> thenAcceptAsync(Consumer<? super T> action,
+                                                 Executor executor);
+    
+三：`thenRunAsync()`启动一个新的异步线程 串行上一个异步线程 无感知上个线程的结果 无返回结果
+public CompletionStage<Void> thenRunAsync(Runnable action,
+                                              Executor executor);                                                 
+```
 
 
-**二，基于 `CompletableFuture` 自带的静态工厂方法：`runAsync()` 、`supplyAsync()` 。**
 
+#### 异常处理
+
+- `handle()`处理任务执行过程中可能出现的抛出异常的情况
+- `exceptionally()`可以感知到异常并对异常进行处理【当出现异常设置默认返回值】）并返回处理结果
+- `completeExceptionally()`让结果就是异常
+
+```java
+一：`handle()`处理任务执行过程中可能出现的抛出异常的情况
+    可以感知到异常并对异常进行处理【当出现异常设置默认返回值】）并返回处理结果
+    
+CompletableFuture<String> future
+        = CompletableFuture.supplyAsync(() -> {
+    if (true) {
+        throw new RuntimeException("Computation error!");
+    }
+    return "hello!";
+}).handle((res, ex) -> {
+    // res 代表返回的结果
+    // ex 的类型为 Throwable ，代表抛出的异常
+    return res != null ? res : "world!";//若未出现异常则 返回正常返回结果 反之指定异常后返回的默认值
+});
+
+二：`exceptionally()`可以感知到异常并对异常进行处理【当出现异常设置默认返回值】）并返回处理结果
+    
+CompletableFuture<String> supplyAsync = CompletableFuture.supplyAsync(() -> {
+            int num = 10 / 0;//模拟出现异常
+            return "Hello ";
+        }, threadPool);
+        supplyAsync.whenComplete((result,exception)->{//当异步任务完成后
+            System.out.println("上一步异步执行的结果是:" + result + "\t" + "上异步出现的异常是" + exception);
+            //上一步异步执行的结果是:null	上异步出现的异常是java.util.concurrent.CompletionException: java.lang.ArithmeticException: / by zero
+        }).exceptionally(throwable -> {//若异步任务完成时出现了异常
+            System.out.println("出现的异常是" + throwable);
+            //出现的异常是java.util.concurrent.CompletionException: java.lang.ArithmeticException: / by zero
+            return "如果出现异常的话 这里返回一个默认值";
+        }).thenAccept((result)->{
+            System.out.println(result);//如果出现异常的话 这里返回一个默认值
+        });
+
+三：`completeExceptionally()`让结果就是异常
+    
+CompletableFuture<String> completableFuture = new CompletableFuture<>();
+// ...
+completableFuture.completeExceptionally(
+  new RuntimeException("Calculation failed!"));
+// ...
+completableFuture.get(); // ExecutionException
+
+```
+
+#### 组合两个CompletableFuture
+
+- `thenComposeAsync`**按顺序链接**两个 `CompletableFuture` 对象;**将前一个任务的返回结果作为下一个任务的参数**，它们之间存在着先后顺序
+- `thenCombineAsync`会**在两个任务都执行完成后**，把**两个任务的结果处理后返回一个结果**。两个任务是并行执行的，它们之间并**没有先后依赖顺序**
+
+**两个都完成**
+
+- `runAfterBothAsync`两个异步线程都执行完后进行一些操作处理 **无法感知**两个线程的**执行结果** **无返回值**
+- `thenAcceptBothAsync`两个异步线程都执行完后进行一些操作处理 **能够感知**两个线程的**执行结果** **无返回值**
+
+**任一完成**
+
+- `applyToEitherAsync`任意一个异步线程执行完成后进行一些操作处理 **能够感知**两个线程的**执行结果** **返回一个结果**
+- `acceptEitherAsync`任意一个异步线程执行完成后进行一些操作处理 **能够感知**两个线程的**执行结果** **无返回值**
+- `runAfterEitherAsync`任意一个异步线程执行完成后进行一些操作处理 **无法感知**两个线程的**执行结果** **无返回值**
+
+#### 并行运行多个 CompletableFuture
+
+可以通过 `CompletableFuture` 的 `allOf()`/`anyOf()`静态方法来并行运行多个 `CompletableFuture`
+
+- `allOf()`**等到所有的 `CompletableFuture` 都运行完成之后再返回**
+- 若线程A和B调用 `join()` 可以让程序等A和B线程 都运行完了之后再继续执行
+- `anyOf()`**不会等待所有的 `CompletableFuture` 都运行完成之后再返回，只要有一个执行完成即可！**
+
+```java
+- 调用 `allOf()`**等到所有的 `CompletableFuture` 都运行完成之后再返回**
+CompletableFuture<Void> task1 =
+  CompletableFuture.supplyAsync(()->{
+    //自定义业务操作
+  });
+......
+CompletableFuture<Void> task6 =
+  CompletableFuture.supplyAsync(()->{
+    //自定义业务操作
+  });
+......
+ CompletableFuture<Void> headerFuture=CompletableFuture.allOf(task1,.....,task6);//指定多个异步线程
+
+  try {
+    headerFuture.join();
+  } catch (Exception ex) {
+    ......
+  }
+System.out.println("all done. ");
+
+- 调用 `join()` 可以让程序等`future1` 和 `future2` 都运行完了之后再继续执行
+    
+CompletableFuture<Void> completableFuture = CompletableFuture.allOf(future1, future2);
+completableFuture.join();
+assertTrue(completableFuture.isDone());
+System.out.println("all futures done...");
+
+- 调用 `anyOf()`**不会等待所有的 `CompletableFuture` 都运行完成之后再返回，只要有一个执行完成即可！**
+CompletableFuture<Object> f = CompletableFuture.anyOf(future1, future2);
+System.out.println(f.get());
+```
 
 
