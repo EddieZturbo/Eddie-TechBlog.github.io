@@ -1,6 +1,6 @@
 ---
 permalink: /
-title: "academicpages is a ready-to-fork GitHub Pages template for academic personal websites"
+title: "The hardest thing is persistence."
 excerpt: "About me"
 author_profile: true
 redirect_from: 
@@ -41,12 +41,11 @@ redirect_from:
 
 
 
-# <img src="https://media4.giphy.com/media/MIGbtLZoVjbl0bYbAd/giphy.gif?cid=ecf05e472t2h0i8d7dcjaoau9iqtchhr899hxmpxzzgc7lyw&rid=giphy.gif" width="30"> Statistics
+# <img src="https://media4.giphy.com/media/MIGbtLZoVjbl0bYbAd/giphy.gif?cid=ecf05e472t2h0i8d7dcjaoau9iqtchhr899hxmpxzzgc7lyw&rid=giphy.gif" width="30"> GitHub Statistics
 
 <br/>
 <p align="left">
     <img width="49.5%" src="https://github-readme-stats-git-masterrstaa-rickstaa.vercel.app/api?username=EddieZturbo&show_icons=true&include_all_commits=true&theme=transparent&hide_border=true">
     <img width="49.5%" src="https://github-readme-stats-git-masterrstaa-rickstaa.vercel.app/api/top-langs/?username=EddieZturbo&theme=transparent&hide_border=true&include_all_commits=true&count_private=true&layout=compact">		  
-  </a>
 </p>
 <br>
