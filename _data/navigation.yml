@@ -1,7 +1,7 @@
 # main links links
 main:
-  - title: "Publications"
-    url: /publications/
+  - title: "Java-backend"
+    url: /Java-backend/
 
   - title: "Talks"
     url: /talks/    

@@ -174,7 +174,7 @@ collections:
   teaching:
     output: true
     permalink: /:collection/:path/
-  publications:
+  Java-backend:
     output: true
     permalink: /:collection/:path/
   portfolio:
@@ -214,10 +214,10 @@ defaults:
       author_profile: true
       share: true
       comments: true
-  # _publications
+  # _Java-backend
   - scope:
       path: ""
-      type: publications
+      type: Java-backend
     values:
       layout: single
       author_profile: true
