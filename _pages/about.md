@@ -1,6 +1,6 @@
 ---
 permalink: /
-title: "The hardest thing is persistence."
+title: ""
 excerpt: "About me"
 author_profile: true
 redirect_from: 
