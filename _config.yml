@@ -101,10 +101,9 @@ author:
   impactstory      : #"https://profiles.impactstory.org/u/xxxx-xxxx-xxxx-xxxx"
   lastfm           :
   linkedin         :
-  orcid            : "http://orcid.org/yourorcidurl"
   pinterest        :
   soundcloud       :
-  stackoverflow    : https://stackoverflow.com/users/20058425/eddie
+  stackoverflow    : "20058425/eddie"
   steam            :
   tumblr           :
   vine             :
