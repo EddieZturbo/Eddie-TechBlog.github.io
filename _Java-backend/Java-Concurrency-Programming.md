@@ -18,11 +18,221 @@ venue: 'February 5'
 >
 > **任务从保存到再加载的过程就是一次上下文切换**。
 >
+> **挂起线程**和**恢复线程**的操作**都需要转入内核态中完成**，这些操作对系统的并发性能带来了很大的压力
+>
 > 上下文切换通常是计算密集型的。也就是说，它需要相当可观的处理器时间，在每秒几十上百次的切换中，每次切换都需要纳秒量级的时间。所以，上下文切换对系统来说意味着消耗大量的 CPU 时间，事实上，可能是操作系统中时间消耗最大的操作。
 >
 > Linux 相比与其他操作系统（包括其他类 Unix 系统）有很多的优点，其中有一项就是，其上下文切换和模式切换的时间消耗非常少。
 
 ## 线程基础
+
+## Java并发机制的底层实现原理
+
+### Java Object Memory Layout
+
+![image-20221024174142826](C:\Users\ZJH20\AppData\Roaming\Typora\typora-user-images\image-20221024174142826.png)
+
+In Hotspot VM, the object layout in the heap can be divided into three parts,
+
+1. Header
+2. Instance Data
+3. Padding
+
+#### Header:eyes:
+
+It saves two types of information.
+
+1. Save the object self's runtime information, the officials call it `Mark Word`, such as HashCode, GC generation age, lock states, the lock that the thread holds, biased thread id, biased timestamp.
+2. Save the type pointer, that's the pointer to the meta-type, Java VM used it  to determine which type of this object is, this is an optional  implementation in the VM.
+   If the object is an array, there is a data in the header to save the array's length
+
+##### Mark Word:eye:
+
+![image-20230210154448670](/images/image-20230210154448670.png)
+
+```
+一个对象创建时：
+如果开启了偏向锁（默认开启），那么对象创建后，markword 值为 0x05 即最后 3 位为 101，这时它的 thread、epoch、age 都为 0
+偏向锁是默认是延迟的，不会在程序启动时立即生效，如果想避免延迟，可以加 VM 参数 
+-
+XX:BiasedLockingStartupDelay=0 来禁用延迟
+如果没有开启偏向锁，那么对象创建后，markword 值为 0x01 即最后 3 位为 001，这时它的 hashcode、age 都为 0，第一次用到 hashcode 时才会赋值
+
+轻量锁和重量锁一个会把hashcode放在栈帧的锁记录，一个会放到monitor中（解锁的时候会还原回来）
+而偏向锁没有额外的储存空间 当获取了hashcode则会弃用偏向锁（消除偏向状态） 重写markword
+
+谨记偏向是指类偏向，而不是对象实例偏向；一个类只能有一个偏向
+```
+
+![image-20230210154116888](/images/image-20230210154116888.png)
+
+![image-20230210145412031](/images/image-20230210145412031.png)
+
+
+
+The 32 bit and 64 bit VM are different.
+
+- 32-bit word
+
+| Object              | Format                                                    |
+| ------------------- | --------------------------------------------------------- |
+| normal object       | hash: 25, age: 4, biased_lock: 1, lock: 2                 |
+| biased object       | JavaThread*: 23, epoch: 2 age: 4, biased_lock: 1, lock: 2 |
+| CMS free block      | 32 bits                                                   |
+| CMS promoted object | PromotedObject*: 29, promo_bits: 3                        |
+
+- 64-bit word
+
+| Object                       | Format                                                       |
+| ---------------------------- | ------------------------------------------------------------ |
+| normal object                | unused: 25, hash: 31, unused: 1, age: 4, biased_lock: 1, lock: 2 |
+| biased object                | JavaThread*: 54, epoch: 2, unused: 1, age: 4, biased_lock: 1, lock: 2 |
+| CMS promoted object          | PromotedObject*: 61, promo_bits: 3                           |
+| CMS free block               | 64 bits                                                      |
+| COOPs && normal object       | unused: 25, hash: 31, cms_free: 1, age: 4, biased_lock: 1, lock: 2 |
+| COOPs && biased object       | JavaThread*: 54, epoch: 2, cms_free: 1, age: 4, biased_lock: 1, lock: 2 |
+| COOPs && CMS promoted object | narrowOop: 32, unused: 24, cms_free: 1, unused: 4, promo_bits: 3 |
+| COOPs && CMS free block      | unused: 21, size: 35, cms_free: 1, unused: 7                 |
+
+##### Class Metadata Address
+
+指向该对象的所属类型
+
+
+
+##### Is Array ? Array Length : nothing
+
+#### Instance Data
+
+The instance data saves the variables defined in the class, including the  variable defined in the parent class. The store sequence will be  impacted by the JVM argument `-XX:FieldsAllocationStyle` and the sequence defined in the class.
+
+> The Hotspot's default allocation sequence is that,
+>
+> - longs/doubles
+> - ints
+> - shorts/chars
+> - bytes/booleans
+> - oops(Ordinary Object Pointers, OOP)
+
+Also, if JVM argument `-XX:CompactFields` is true(default value), the thinner variable in the child class will be inserted into the gap of parent variables.
+
+#### Padding
+
+The HotSpot VM's auto memory management system requires the starting  address of the object must be 8-byte event digits, which means any  object's size muse be 8-byte event digits. So, if an object's instance  data doesn't align, it needs padding.
+
+
+
+### Monitor
+
+> **Each object and its class are associated with a monitor.**
+
+
+
+> Java's monitor supports two kinds of thread synchronization: ==*mutual exclusion*== and ==*cooperation*==. 
+>
+> 
+>
+> ==*mutual exclusion*==, which is supported in the Java virtual machine via  object locks, enables multiple threads to **independently work on shared  data without interfering with each other**;**only one thread can "own" at any one time.**
+>
+> :lock:每个 Java 对象都可以关联一个 Monitor 对象，如果使用 synchronized 给对象上锁（重量级）之后，该对象头的Mark Word 中就被设置指向 Monitor 对象的指针
+>
+> 
+>
+> ==*cooperation*==, which is supported in the Java virtual machine via the ==wait== and ==notify== methods of class `Object`, **enables threads to work together towards a common goal.**
+>
+> | Method                                 | Description                                                  |
+> | -------------------------------------- | ------------------------------------------------------------ |
+> | `void wait();`                         | Enter a monitor's wait set until notified by another thread<br />This method should **only be called by** a thread that is the **owner of this object's monitor.** |
+> | `void wait(long timeout); `            | Enter a monitor's wait set until notified by another thread or `timeout` milliseconds elapses |
+> | `void wait(long timeout, int nanos); ` | Enter a monitor's wait set until notified by another thread or `timeout` milliseconds plus `nanos` nanoseconds elapses<br />**timeout** – the maximum time to wait in milliseconds.<br/>**nanos** – additional time, in nanoseconds range 0-999999. |
+> | `void notify();`                       | Wake up one thread waiting in the monitor's wait set. (If no threads are waiting, do nothing.) |
+> | `void notifyAll();`                    | Wake up all threads waiting in the monitor's wait set. (If no threads are waiting, do nothing.) |
+
+
+
+
+
+![image-20230210133418542](/images/image-20230210133418542.png)
+
+![image-20230210133507494](/images/image-20230210133507494.png)
+
+### synchronized
+
+#### synchronized底层实现
+
+> **当一个线程试图访问synchronized同步代码块或方法时**，它首先**必须得到锁**;
+>
+> **退出或抛出异常时必须释放锁**
+>
+> 
+>
+> JVM基于进入和退出Monitor对象来实现方法同步和代码块同步
+>
+> 
+>
+> **代码块级别**的 JVM中==monitorenter==和==monitorexit==字节码指令依赖于底层的操作系统的**Mutex Lock**来实现的
+>
+> **方法级别**的 synchronized 不会在字节码指令中有所体现
+
+```java
+synchronized (this) {//--------monitorenter
+	//critical section
+}//----------------------------monitorexit
+```
+
+#### synchronized应用
+
+> ==对象锁==
+>
+> In the Java virtual machine, **every object and class is logically associated with a ==monitor==.**
+>
+> 
+>
+> ==类锁==
+>
+> Class locks are actually implemented as object locks. As mentioned in earlier chapters, when the Java virtual machine loads a class file, it creates an instance of `class java.lang.Class.` When you lock a class, you are actually locking that class's Class object.
+
+
+
+==应用于方法上==
+
+```java
+public synchronized void test2(String s) {//对象锁 默认为this对象
+	...
+}
+
+public static synchronized void test3(String s) {//类锁 默认的锁就是当前所在的Class类
+    /*Class locks are actually implemented as object locks. As mentioned in earlier chapters, when the Java virtual machine loads a class file, it creates an instance of class java.lang.Class. When you lock a class, you are actually locking that class's Class object. */
+	...
+}
+```
+
+==应用于代码块==
+
+可以指定任意对象作为锁
+
+```java
+synchronized (this) {//对象锁
+	...
+}
+
+synchronized (Person.class) {//类锁
+    /*Class locks are actually implemented as object locks. As mentioned in earlier chapters, when the Java virtual machine loads a class file, it creates an instance of class java.lang.Class. When you lock a class, you are actually locking that class's Class object. */
+	...
+}
+```
+
+#### synchronized锁的升级
+
+> Java SE 1.6里Synchronied同步锁，一共有四种状态：`无锁`、`偏向锁`、`轻量级锁`、`重量级锁`，它会**随着竞争**情况**逐渐升级**。锁可以升级但是**不可以降级**，
+>
+> 目的是为了**提高获取锁和释放锁的效率**。
+>
+> 可以通过-XX:-UseBiasedLocking=false来禁用偏向锁。
+>
+> 锁膨胀方向： 无锁 → 偏向锁 → 轻量级锁 → 重量级锁 (此过程是不可逆的)
+
+
 
 ## JUC(Java Util Concurrency)
 
@@ -30,11 +240,11 @@ venue: 'February 5'
 
 **池化技术的思想**主要是为了**减少每次获取资源的消耗**，**提高对资源的利用率**
 
-- **降低资源消耗**。通过重复利用已创建的线程降低线程创建和销毁造成的消耗。
+- ==**降低资源消耗**==。通过重复利用已创建的线程降低线程创建和销毁造成的消耗。
 
-- **提高响应速度**。当任务到达时，任务可以不需要等到线程创建就能立即执行。
+- ==**提高响应速度**==。当任务到达时，任务可以不需要等到线程创建就能立即执行。
 
-- **提高线程的可管理性**。线程是稀缺资源，如果无限制的创建，不仅会消耗系统资源，还会降低系统的稳定性，使用线程池可以进行统一的分配，调优和监控。
+- ==**提高线程的可管理性**==。线程是稀缺资源，如果无限制的创建，不仅会消耗系统资源，还会降低系统的稳定性，使用线程池可以进行统一的分配，调优和监控。
 
 ### 线程池原理分析
 
