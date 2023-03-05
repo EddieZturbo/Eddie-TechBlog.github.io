@@ -1,8 +1,10 @@
 ---
-title: "How to avoid leadership advice that can sabotage your career and mental health—and what to do instead."
+title: "How to avoid leadership advice that can sabotage your career and mental health"
 collection: reading
 permalink: /reading/How to avoid leadership advice that can sabotage your career and mental health
+excerpt: 'reading'
 date: 2023-03-05
+venue: 'March 5'
 ---
 
 # How to avoid leadership advice that can sabotage your career and mental health—and what to do instead.
