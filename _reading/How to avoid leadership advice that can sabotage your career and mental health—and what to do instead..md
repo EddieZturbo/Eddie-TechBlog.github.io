@@ -1,0 +1,64 @@
+---
+title: "How to avoid leadership advice that can sabotage your career and mental health—and what to do instead."
+collection: reading
+permalink: /reading/How to avoid leadership advice that can sabotage your career and mental health—and what to do instead.
+date: 2023-03-05
+---
+
+# How to avoid leadership advice that can sabotage your career and mental health—and what to do instead.
+
+
+
+![image-20230305103840282](/images/image-20230305103840282.png)
+
+> The pressure to be a great leader is significant—and for good reason. 
+
+
+
+A recent study of 3,400 people across 10 countries by the [Workforce Institute at UKG](https://www.ukg.com/resources/article/mental-health-work-managers-and-money) found that for 69% of people, their managers had the greatest impact on their mental health—on par with their partners. In fact, managers had a greater impact on workers’ mental health than their doctors and therapists.
+
+Plus, a survey of 3,000 people by [GoodHire](https://www.goodhire.com/resources/articles/horrible-bosses-survey/) found that 82% of workers would quit their job because of a bad manager. And 83% believe they could do their job without their manager. Only 32% of people believe their manager really cares about their career progression, and the biggest frustration is when their manager micromanages them or asks them to work outside their standard hours. When asked what they want most, people say they want a manager who is honest and authentic.
+
+As a manager, there are always ways to grow and improve. But if you’re looking for leadership advice, prepare to be overwhelmed. Recommendations are everywhere, and [so-called leadership gurus, experts, and coaches](https://www.fastcompany.com/90807973/why-you-should-ignore-self-help-evangelists-if-you-want-to-be-more-successful) are eager to provide you with their framework for success, their list of the skills you must develop, and all the things you must do differently. But great leadership isn’t achieved by following a formula or intense instructions. Great leadership is organic and authentic.
+
+Here’s why you should ignore the advice of leadership gurus—and what to do instead:
+
+## **HOW TO SPOT—AND AVOID—BAD LEADERSHIP ADVICE**
+
+It can be difficult to spot bad leadership advice. One place to start is to avoid strict formulas, rules, practices, or protocols, because there are multiple problems with following the rigid program offered by many online leadership “experts.”
+
+The first reason you should avoid extensive programs peddled by phony leadership coaches is that they [can be overwhelming](https://www.fastcompany.com/90782141/avoid-these-16-bad-habits-that-can-damage-a-leaders-influence). While some advice may be helpful, it can require unnecessary busy work. Often these characters will give you tasks you need to accomplish such as setting a vision, communicating regularly, adapting strategy. This advice, however, can often be impractical and unrelated to the outcomes you need to achieve at work. Overwhelming and overzealous advice from leadership gurus can stop your progress and compromise your focus and effectiveness.
+
+Another problem with too much emphasis on guru tactics is that you run the risk of becoming unnatural with people. If you’re pulling out your mental checklist for every interaction or consulting the model or the framework constantly, you’ll lose a natural style and people will notice. This can create the potential for awkward interactions and misalignment of what you’re saying and doing. And this poor communication can erode trust with your team.
+
+Ultimately, advice from overhyped leadership coaches can be draining and exhausting. As a leader, your responsibility is to look to the future and see the bigger picture as you set goals, communicate direction, and clarify expectations. But adding a million things to your plate can have the unintended consequence of stifling your motivation. 
+
+Fortunately, there are several more effective, and more natural, ways to become a better leader. 
+
+## **BE YOURSELF**
+
+One of the best things you can do to foster trust, motivate people, and deliver results is to [be yourself](https://www.fastcompany.com/90818025/3-strategies-resilient-leadership-staying-power). You won’t be perfect, but people aren’t looking for perfection. In fact, the aura of perfection can put people off. Instead, most of us want to know you’re present, paying attention, and giving it your all.
+
+One of the primary ways people learn is through watching others, listening to them, and experiencing them, so your behavior is influential. Workers rightfully focus on the choices leaders make, and being yourself can encourage others to be their full selves at work as well. Ultimately, all you can do is your best: Be your best but be yourself.
+
+Being your true self can help foster trust, and your imperfect efforts will make you accessible and human—both very good things in developing relationships with colleagues.
+
+## **BE RESPONSIVE**
+
+Another way you can improve your leadership skills is to focus on meeting people where they are. There is no one-size-fits-all approach that will work for every employee.
+
+For example, great leaders provide autonomy, but if someone is less experienced in their role, they’ll need more guidance. Great leaders provide recognition, but if someone shrinks from the limelight, you’ll need to be selective in how you provide it. 
+
+The point is that you’ll want to tune your style and your strategies with each unique individual in mind rather than following a static playbook.
+
+## **BE AWARE AND AUTHENTIC**
+
+Another element of leadership success is learning, listening, and staying aware of the advice you let influence your thinking about leadership. Read articles and tune into podcasts that are well researched and are aligned with your values. Set time aside to process new ideas for yourself.
+
+Overall, leadership is a way of being, rather than a way of doing. There are important tasks you’ll need to complete as a leader, such as communicating your vision, having one-on-ones, doing performance reviews, setting clear expectations, helping to resolve conflicts, and so much more. But these are table stakes. Being [thoughtful, aware, and authentic](https://www.fastcompany.com/90717032/we-need-authentic-leadership-more-than-ever-in-2022) is one of the best ways you can go above and beyond as a leader. 
+
+When you do your best, seek to be better all the time, admit mistakes, and interact with people in a human way, you generate trust, motivation, and positive results.
+
+
+
+> Origin:  How to spot bad leadership advice—and what to do instead (fastcompany.com)
